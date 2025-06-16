@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Math Quiz Login</title>
+</head>
+<body>
+  <h1>Login to Math Quiz</h1>
+  <div id="login-div">
+    <input type="text" id="username" placeholder="Username"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+    <p id="login-result"></p>
+  </div>
+
+  <div id="quiz-div" style="display:none;">
+    <h2>Welcome, <span id="user"></span>!</h2>
+    <p id="question"></p>
+    <input type="number" id="answer" />
+    <button onclick="checkAnswer()">Check Answer</button>
+    <p id="result"></p>
+    <p>Score: <span id="score">0</span></p>
+  </div>
+
+  <script>
+    const backendUrl = 'https://math-quiz-backend.onrender.com';
+    let username = "";
+    let score = 0;
+    let num1, num2;
+
+    function login() {
+      username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch(`${backendUrl}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('login-div').style.display = 'none';
+          document.getElementById('quiz-div').style.display = 'block';
+          document.getElementById('user').innerText = username;
+          askQuestion();
+        } else {
+          document.getElementById('login-result').innerText = 'Login failed!';
+        }
+      });
+    }
+
+    function askQuestion() {
+      fetch(`${backendUrl}/get-next-question/${username}`)
+        .then(res => res.json())
+        .then(data => {
+          num1 = data.num1;
+          num2 = data.num2;
+          document.getElementById('question').innerText = `What is ${num1} x ${num2}?`;
+        });
+    }
+
+    function checkAnswer() {
+      const userAnswer = parseInt(document.getElementById('answer').value);
+      const isCorrect = userAnswer === num1 * num2;
+
+      document.getElementById('result').innerText = isCorrect ? "Correct!" : `Wrong! It's ${num1 * num2}`;
+      if(isCorrect) score++;
+      document.getElementById('score').innerText = score;
+
+      fetch(`${backendUrl}/save-progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username,
+          score: score,
+          question: `${num1} x ${num2}`,
+          answer: userAnswer,
+          correct: isCorrect
+        })
+      });
+
+      askQuestion();
+      document.getElementById('answer').value = '';
+    }
+  </script>
+</body>
+</html>

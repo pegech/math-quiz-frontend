@@ -1,88 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Math Quiz Login</title>
+  <title>Math Quiz App</title>
 </head>
 <body>
-  <h1>Login to Math Quiz</h1>
-  <div id="login-div">
-    <input type="text" id="username" placeholder="Username"><br>
-    <input type="password" id="password" placeholder="Password"><br>
-    <button onclick="login()">Login</button>
-    <p id="login-result"></p>
-  </div>
+  <h1>Math Quiz App</h1>
+  <input id="username" placeholder="Username"><br>
+  <input id="password" placeholder="Password" type="password"><br>
+  <button onclick="login()">Login</button><br><br>
+  
+  <button onclick="getQuestion()">Get Next Question</button><br>
+  <div id="question"></div><br>
+  
+  <input id="answer" placeholder="Your Answer"><br>
+  <button onclick="checkAnswer()">Check Answer</button><br>
+  
+  <pre id="result"></pre>
 
-  <div id="quiz-div" style="display:none;">
-    <h2>Welcome, <span id="user"></span>!</h2>
-    <p id="question"></p>
-    <input type="number" id="answer" />
-    <button onclick="checkAnswer()">Check Answer</button>
-    <p id="result"></p>
-    <p>Score: <span id="score">0</span></p>
-  </div>
+<script>
+const backend = 'https://math-quiz-backend.onrender.com';
 
-  <script>
-    const backendUrl = 'https://math-quiz-backend.onrender.com';
-    let username = "";
-    let score = 0;
-    let num1, num2;
+async function login() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
 
-    function login() {
-      username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+  const res = await fetch(`${backend}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+    credentials: 'include'
+  });
 
-      fetch(`${backendUrl}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username, password: password })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          document.getElementById('login-div').style.display = 'none';
-          document.getElementById('quiz-div').style.display = 'block';
-          document.getElementById('user').innerText = username;
-          askQuestion();
-        } else {
-          document.getElementById('login-result').innerText = 'Login failed!';
-        }
-      });
-    }
+  const data = await res.json();
+  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+}
 
-    function askQuestion() {
-      fetch(`${backendUrl}/get-next-question/${username}`)
-        .then(res => res.json())
-        .then(data => {
-          num1 = data.num1;
-          num2 = data.num2;
-          document.getElementById('question').innerText = `What is ${num1} x ${num2}?`;
-        });
-    }
+async function getQuestion() {
+  const res = await fetch(`${backend}/get_next_question`, { credentials: 'include' });
+  const data = await res.json();
+  document.getElementById('question').textContent = data.question;
+}
 
-    function checkAnswer() {
-      const userAnswer = parseInt(document.getElementById('answer').value);
-      const isCorrect = userAnswer === num1 * num2;
-
-      document.getElementById('result').innerText = isCorrect ? "Correct!" : `Wrong! It's ${num1 * num2}`;
-      if(isCorrect) score++;
-      document.getElementById('score').innerText = score;
-
-      fetch(`${backendUrl}/save-progress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: username,
-          score: score,
-          question: `${num1} x ${num2}`,
-          answer: userAnswer,
-          correct: isCorrect
-        })
-      });
-
-      askQuestion();
-      document.getElementById('answer').value = '';
-    }
-  </script>
+async function checkAnswer() {
+  const answer = document.getElementById('answer').value;
+  const res = await fetch(`${backend}/check_answer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ answer })
+  });
+  const data = await res.json();
+  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+}
+</script>
 </body>
 </html>
